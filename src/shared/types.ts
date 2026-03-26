@@ -12,7 +12,8 @@ export type WebviewMessage =
 export type ExtensionMessage =
   | { type: 'REQUEST_SCHEMA' }
   | { type: 'OPEN_FILE'; target: string }
-  | { type: 'YAML_UPDATE'; payload: string };
+  | { type: 'YAML_UPDATE'; payload: string }
+  | { type: 'SET_AGENT_DRIVING'; payload: boolean };
 
 export type WorkerMessage =
   | { type: 'LAYOUT_COMPLETE'; nodes: any[]; edges: any[] }

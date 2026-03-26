@@ -14,6 +14,18 @@ export const CapabilityForge = () => {
     const [isAgentDriving, setIsAgentDriving] = useState(false);
 
     useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            const message = event.data;
+            if (message && message.type === 'SET_AGENT_DRIVING') {
+                setIsAgentDriving(message.payload);
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
+
+    useEffect(() => {
         // Fetch capabilities on mount
         fetch('http://localhost:8000/api/v1/schema/capabilities')
             .then(res => res.json())

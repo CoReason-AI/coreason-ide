@@ -5,8 +5,7 @@ import '@xyflow/react/dist/style.css';
 import ElkWorker from '../workers/elkWorker.ts?worker&inline';
 import { AgentNode } from './AgentNode';
 
-declare const acquireVsCodeApi: () => any;
-const vscodeApi = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : { postMessage: () => {} };
+import { vscodeApi } from '../vscodeApi';
 
 export const TDACanvas = () => {
     const [nodes, setNodes] = useState<Node[]>([]);

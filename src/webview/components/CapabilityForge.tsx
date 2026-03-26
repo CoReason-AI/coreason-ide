@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-declare const acquireVsCodeApi: () => any;
-const vscodeApi = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : { postMessage: () => {} };
+import { vscodeApi } from '../vscodeApi';
 
 export const CapabilityForge = () => {
     const [capabilities, setCapabilities] = useState<string[]>([]);

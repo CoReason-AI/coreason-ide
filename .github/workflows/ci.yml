@@ -33,3 +33,14 @@ jobs:
       - name: Build Webview
         run: npx vite build
         shell: bash
+      - name: Pillar 1 & 2 - Pure Logic & React Components (Vitest)
+        run: npm run test
+        shell: bash
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-coreason-vscode
+          fail_ci_if_error: false

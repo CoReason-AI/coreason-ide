@@ -4,7 +4,8 @@ export type WebviewMessage =
   | { type: 'SCHEMA_UPDATE'; payload: unknown }
   | { type: 'SET_ROUTE'; payload: 'MANIFOLD' | 'FORGE' | 'ORACLE' }
   | { type: 'SET_ORACLE_WORKFLOW'; payload: string }
-  | { type: 'EDGE_CREATED'; payload: { source: string; target: string } };
+  | { type: 'EDGE_CREATED'; payload: { source: string; target: string } }
+  | { type: 'REQUEST_SYNTHESIS' };
 
 export type ExtensionMessage =
   | { type: 'REQUEST_SCHEMA' }

@@ -37,6 +37,42 @@ export class ManifoldPanel {
         this.update();
 
         this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+
+        this.panel.webview.onDidReceiveMessage(async (message) => {
+            if (message.type === 'REQUEST_SYNTHESIS') {
+                const editor = vscode.window.activeTextEditor;
+                if (!editor) {
+                    return;
+                }
+
+                try {
+                    const currentYamlText = editor.document.getText();
+
+                    const response = await fetch('http://localhost:8000/api/v1/predict/topology', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'text/plain'
+                        },
+                        body: currentYamlText
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const newYamlText = await response.text();
+
+                    const edit = new vscode.WorkspaceEdit();
+                    const fullRange = new vscode.Range(0, 0, editor.document.lineCount, 0);
+                    edit.replace(editor.document.uri, fullRange, newYamlText);
+
+                    await vscode.workspace.applyEdit(edit);
+                } catch (error) {
+                    console.error('Synthesis failed:', error);
+                    vscode.window.showErrorMessage('Synthesis Engine Offline');
+                }
+            }
+        }, null, this.disposables);
     }
 
     public updateCanvas(yamlText: string) {

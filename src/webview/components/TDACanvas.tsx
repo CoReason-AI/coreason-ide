@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ReactFlow, Controls, Background, Node, Edge } from '@xyflow/react';
+import { ReactFlow, Controls, Background, Node, Edge, Panel } from '@xyflow/react';
 // @ts-ignore
 import '@xyflow/react/dist/style.css';
+
+declare const acquireVsCodeApi: () => any;
+const vscodeApi = typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : { postMessage: () => {} };
 
 export const TDACanvas = () => {
     const [nodes, setNodes] = useState<Node[]>([]);
@@ -34,6 +37,23 @@ export const TDACanvas = () => {
     return (
         <div style={{ width: '100vw', height: '100vh' }}>
             <ReactFlow nodes={nodes} edges={edges} fitView colorMode="dark">
+                <Panel position="top-right">
+                    <button
+                        onClick={() => vscodeApi.postMessage({ type: 'REQUEST_SYNTHESIS' })}
+                        style={{
+                            background: 'var(--vscode-button-background)',
+                            color: 'var(--vscode-button-foreground)',
+                            border: 'none',
+                            padding: '8px 12px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold',
+                            borderRadius: '2px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                        }}
+                    >
+                        ✨ Synthesize Next Agent
+                    </button>
+                </Panel>
                 <Background />
                 <Controls />
             </ReactFlow>

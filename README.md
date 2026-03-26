@@ -1,8 +1,12 @@
 # CoReason VS Code Projection Manifold
 
-![GitHub Actions CI](https://img.shields.io/badge/CI-Passing-brightgreen)
-![Codecov](https://img.shields.io/badge/Codecov-95%25-brightgreen)
-![VS Code Marketplace Version](https://img.shields.io/badge/VS_Code_Marketplace-v1.0.0-blue)
+[![CI](https://github.com/coreason/coreason-vscode/actions/workflows/ci.yml/badge.svg)](https://github.com/coreason/coreason-vscode/actions/workflows/ci.yml)
+[![Security](https://github.com/coreason/coreason-vscode/actions/workflows/security.yml/badge.svg)](https://github.com/coreason/coreason-vscode/actions/workflows/security.yml)
+[![Codecov](https://codecov.io/gh/coreason/coreason-vscode/branch/main/graph/badge.svg)](https://codecov.io/gh/coreason/coreason-vscode)
+[![License: Prosperity 3.0](https://img.shields.io/badge/License-Prosperity_3.0-blue.svg)](https://prosperitylicense.com/versions/3.0.0)
+[![VS Code Marketplace](https://img.shields.io/visual-studio-marketplace/v/coreason.coreason-vscode?label=VS%20Code%20Marketplace)](https://marketplace.visualstudio.com/items?itemName=coreason.coreason-vscode)
+[![Open VSX](https://img.shields.io/open-vsx/v/coreason/coreason-vscode?label=Open%20VSX)](https://open-vsx.org/extension/coreason/coreason-vscode)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/coreason.coreason-vscode)](https://marketplace.visualstudio.com/items?itemName=coreason.coreason-vscode)
 
 *A Cybernetic Control Surface and Topological Canvas for the coreason-runtime Active Inference mesh.*
 

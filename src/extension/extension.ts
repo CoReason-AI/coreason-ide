@@ -14,10 +14,19 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Hijack YAML extension schemas
-    const config = vscode.workspace.getConfiguration('yaml');
-    const existingSchemas = config.get<Record<string, string[]>>('schemas') || {};
-    existingSchemas['coreason-schema://schemas/swarm.json'] = ["*.coreason.yaml", "*.coreason.json"];
-    config.update('schemas', existingSchemas, vscode.ConfigurationTarget.Workspace);
+    try {
+        const config = vscode.workspace.getConfiguration('yaml');
+        const existingSchemas = { ...(config.get<Record<string, string[]>>('schemas') || {}) };
+        existingSchemas['coreason-schema://schemas/swarm.json'] = ["*.coreason.yaml", "*.coreason.json"];
+        
+        const target = vscode.workspace.workspaceFolders 
+            ? vscode.ConfigurationTarget.Workspace 
+            : vscode.ConfigurationTarget.Global;
+            
+        config.update('schemas', existingSchemas, target);
+    } catch (e) {
+        console.warn('Could not update YAML schemas automatically:', e);
+    }
 
     const disposable = vscode.commands.registerCommand('coreason.openManifold', () => {
         vscode.window.showInformationMessage('Initializing CoReason TDA Canvas...');

@@ -141,5 +141,13 @@ cython_debug/
 
 # Runtime Logs
 logs/
+
+# Node.js
 node_modules/
-node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# VS Code Extension
+.vscode-test/
+*.vsix

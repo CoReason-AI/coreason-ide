@@ -3,15 +3,12 @@
   "publisher": "coreason",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.90.0"
+    "vscode": "^1.107.0"
   },
   "main": "./dist/extension.js",
   "activationEvents": [
     "onLanguage:yaml",
     "onLanguage:json"
-  ],
-  "extensionDependencies": [
-    "redhat.vscode-yaml"
   ],
   "contributes": {
     "commands": [
@@ -73,14 +70,14 @@
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
-    "@types/vscode": "^1.110.0",
+    "@types/vscode": "^1.107.0",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.2",
     "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.27.4",
     "glob": "^13.0.6",
     "jsdom": "^29.0.1",
-    "mocha": "^11.7.5",
+    "mocha": "^7.2.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.2",
     "vitest": "^4.1.1"

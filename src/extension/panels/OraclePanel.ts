@@ -42,14 +42,14 @@ export class OraclePanel {
 
         this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
-        // Notify Webview to render the ORACLE route
-        const routeMessage: WebviewMessage = { type: 'SET_ROUTE', payload: 'ORACLE' };
-        this.panel.webview.postMessage(routeMessage);
-
-        if (workflowId) {
-            const workflowMessage: WebviewMessage = { type: 'SET_ORACLE_WORKFLOW', payload: workflowId };
-            this.panel.webview.postMessage(workflowMessage);
-        }
+        this.panel.webview.onDidReceiveMessage((message) => {
+            if (message.type === 'READY') {
+                this.panel.webview.postMessage({ type: 'SET_ROUTE', payload: 'ORACLE' });
+                if (workflowId) {
+                    this.panel.webview.postMessage({ type: 'SET_ORACLE_WORKFLOW', payload: workflowId });
+                }
+            }
+        }, null, this.disposables);
     }
 
     private update() {

@@ -38,9 +38,11 @@ export class ForgePanel {
 
         this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
-        // Notify Webview to render the FORGE route
-        const message: WebviewMessage = { type: 'SET_ROUTE', payload: 'FORGE' };
-        this.panel.webview.postMessage(message);
+        this.panel.webview.onDidReceiveMessage((message) => {
+            if (message.type === 'READY') {
+                this.panel.webview.postMessage({ type: 'SET_ROUTE', payload: 'FORGE' });
+            }
+        }, null, this.disposables);
     }
 
     private update() {

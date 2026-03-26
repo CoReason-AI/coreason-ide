@@ -29,3 +29,26 @@ npm ci
 npm run watch
 # Press F5 in VS Code to launch the Extension Development Host
 ```
+
+## Installation & Deployment (Side-Loading)
+
+### 1. Packaging the VSIX
+
+To compile the extension into a standalone binary, run the following commands:
+```bash
+npm ci
+npm run build
+npx @vscode/vsce package
+```
+
+### 2. Installing on Native VS Code
+
+The resulting `.vsix` file can be installed via the Extensions pane. Click on the `...` menu and select **Install from VSIX...**.
+
+### 3. Installing on AI Forks (Antigravity, Cursor, Windsurf)
+
+The extension is fully compatible with modern forks running Engine `^1.90.0`. To install on these IDEs, follow the same "Install from VSIX" step described above.
+
+### 4. The Open VSX Dependency
+
+**Crucial Note:** This extension relies on the `redhat.vscode-yaml` dependency. Because the extension uses this language server, forks that do not connect to the Microsoft Marketplace must resolve this dependency via the Open VSX Registry.

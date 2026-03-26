@@ -68,13 +68,17 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^25.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@types/vscode": "^1.110.0",
     "@vitejs/plugin-react": "^6.0.1",
+    "@vscode/test-electron": "^2.5.2",
     "esbuild": "^0.27.4",
+    "glob": "^13.0.6",
     "jsdom": "^29.0.1",
+    "mocha": "^11.7.5",
     "typescript": "^6.0.2",
     "vite": "^8.0.2",
     "vitest": "^4.1.1"
@@ -86,6 +90,7 @@
     "build:webview": "vite build",
     "watch": "npm run build:extension -- --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "npm run build:extension && tsc -p tsconfig.test.json && node ./dist/test/runTest.js"
   }
 }

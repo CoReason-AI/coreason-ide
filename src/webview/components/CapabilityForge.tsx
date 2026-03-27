@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 
 import { vscodeApi } from '../vscodeApi';
+import { SandboxReceipt } from '../../shared/types';
 
 export const CapabilityForge = () => {
     const [capabilities, setCapabilities] = useState<string[]>([]);
     const [selectedTool, setSelectedTool] = useState<string>('');
     const [intentJson, setIntentJson] = useState<string>('{\n  "arguments": {}\n}');
     const [latentState, setLatentState] = useState<string>('{\n  "workflowId": "mock-123"\n}');
-    const [receipt, setReceipt] = useState<string>('');
+    const [receipt, setReceipt] = useState<SandboxReceipt | null>(null);
     const [activeTab, setActiveTab] = useState<'output' | 'stdout' | 'physics'>('output');
     const [isLoading, setIsLoading] = useState(false);
     const [isAgentDriving, setIsAgentDriving] = useState(false);
@@ -19,6 +20,9 @@ export const CapabilityForge = () => {
                 setIsAgentDriving(message.payload);
             } else if (message && message.type === 'AGENT_SUSPENDED') {
                 setIsAgentDriving(message.payload.isAgentDriving);
+            } else if (message && message.type === 'CAPABILITY_EXECUTED') {
+                setReceipt(message.payload);
+                setIsLoading(false);
             }
         };
 
@@ -48,7 +52,7 @@ export const CapabilityForge = () => {
 
     const executeSandbox = async () => {
         setIsLoading(true);
-        setReceipt('Executing...');
+        setReceipt(null);
         try {
             const parsedIntent = JSON.parse(intentJson);
             const parsedState = JSON.parse(latentState);
@@ -58,31 +62,29 @@ export const CapabilityForge = () => {
                 state: parsedState
             };
 
-            const response = await fetch('http://localhost:8000/api/v1/sandbox/execute', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(payload)
+            vscodeApi.postMessage({
+                type: 'EXECUTE_CAPABILITY',
+                payload: { toolName: selectedTool, intent: payload }
             });
-
-            const data = await response.json();
-            setReceipt(JSON.stringify(data, null, 2));
         } catch (error: any) {
-            setReceipt(`Error: ${error.message || String(error)}`);
-        } finally {
+            setReceipt({
+                intent_hash: 'error_hash',
+                success: false,
+                error: `Error parsing JSON: ${error.message || String(error)}`
+            });
             setIsLoading(false);
         }
     };
 
     const handleCrystallize = () => {
+        if (!receipt) return;
         vscodeApi.postMessage({
             type: 'CRYSTALLIZE_TEST',
             payload: {
                 capability: selectedTool,
                 state: latentState,
                 intent: intentJson,
-                output: receipt
+                output: typeof receipt.output === 'string' ? receipt.output : JSON.stringify(receipt.output)
             }
         });
     };
@@ -198,16 +200,16 @@ export const CapabilityForge = () => {
                         </button>
                         <button
                             onClick={handleCrystallize}
-                            disabled={isLoading || !receipt || receipt === 'Executing...' || receipt.startsWith('Error:')}
+                            disabled={isLoading || !receipt || !receipt.success}
                             style={{
                                 padding: '10px',
                                 background: 'var(--vscode-button-secondaryBackground)',
                                 color: 'var(--vscode-button-secondaryForeground)',
                                 border: '1px solid var(--vscode-button-border)',
                                 borderRadius: '2px',
-                                cursor: isLoading || !receipt || receipt === 'Executing...' || receipt.startsWith('Error:') ? 'not-allowed' : 'pointer',
+                                cursor: isLoading || !receipt || !receipt.success ? 'not-allowed' : 'pointer',
                                 fontWeight: 'bold',
-                                opacity: isLoading || !receipt || receipt === 'Executing...' || receipt.startsWith('Error:') ? 0.7 : 1
+                                opacity: isLoading || !receipt || !receipt.success ? 0.7 : 1
                             }}
                         >
                             ✨ Crystallize Contract
@@ -251,22 +253,65 @@ export const CapabilityForge = () => {
                     padding: '10px',
                     overflowY: 'auto'
                 }}>
-                    {activeTab === 'output' && (
-                        <pre style={{ margin: 0, fontFamily: 'var(--vscode-editor-font-family), monospace', fontSize: '0.9em', whiteSpace: 'pre-wrap' }}>
-                            <code>{receipt}</code>
-                        </pre>
+                    {activeTab === 'output' && receipt && (
+                        receipt.success ? (
+                            <pre style={{ margin: 0, fontFamily: 'var(--vscode-editor-font-family), monospace', fontSize: '0.9em', whiteSpace: 'pre-wrap' }}>
+                                <code>{typeof receipt.output === 'string' ? receipt.output : JSON.stringify(receipt.output, null, 2)}</code>
+                            </pre>
+                        ) : (
+                            <pre style={{
+                                margin: 0,
+                                fontFamily: 'var(--vscode-editor-font-family), monospace',
+                                fontSize: '0.9em',
+                                whiteSpace: 'pre-wrap',
+                                color: 'var(--vscode-errorForeground)',
+                                border: '1px solid var(--vscode-errorForeground)',
+                                padding: '10px'
+                            }}>
+                                <code>{receipt.error || 'Unknown Error'}</code>
+                            </pre>
+                        )
                     )}
-                    {activeTab === 'stdout' && (
+                    {activeTab === 'stdout' && receipt && (
                         <pre style={{ margin: 0, fontFamily: 'var(--vscode-editor-font-family), monospace', fontSize: '0.9em', whiteSpace: 'pre-wrap', color: 'var(--vscode-terminal-foreground)' }}>
-                            <code>{receipt ? '[Mock] System logged execution context.\n[Mock] Binary initialized successfully.' : ''}</code>
+                            <code>
+                                {receipt.logs?.stdout || ''}
+                                {receipt.logs?.stderr && (
+                                    <span style={{ color: 'var(--vscode-errorForeground)' }}>
+                                        {receipt.logs?.stdout ? '\n' : ''}{receipt.logs.stderr}
+                                    </span>
+                                )}
+                            </code>
                         </pre>
                     )}
-                    {activeTab === 'physics' && (
-                        <pre style={{ margin: 0, fontFamily: 'var(--vscode-editor-font-family), monospace', fontSize: '0.9em', whiteSpace: 'pre-wrap', color: 'var(--vscode-terminal-ansiBrightCyan)' }}>
-                            <code>{receipt ? 'Latency: 42ms\nMemory Allocation: 1.8MB out of 2.0MB limit\nCPU Time: 12ms' : ''}</code>
-                        </pre>
+                    {activeTab === 'physics' && receipt?.telemetry && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div style={{
+                                color: (receipt.telemetry.latency_ns / 1_000_000) > 500 ? 'var(--vscode-charts-orange)' : 'var(--vscode-foreground)'
+                            }}>
+                                <strong>Latency:</strong> {(receipt.telemetry.latency_ns / 1_000_000).toFixed(2)} ms
+                            </div>
+                            <div style={{
+                                color: (receipt.telemetry.peak_memory_bytes / 1_048_576) > 2 ? 'var(--vscode-charts-orange)' : 'var(--vscode-foreground)'
+                            }}>
+                                <strong>Peak Memory:</strong> {(receipt.telemetry.peak_memory_bytes / 1_048_576).toFixed(2)} MB
+                            </div>
+                        </div>
                     )}
                 </div>
+
+                {receipt && (
+                    <div style={{
+                        marginTop: 'auto',
+                        paddingTop: '10px',
+                        borderTop: '1px solid var(--vscode-panel-border)',
+                        fontFamily: 'var(--vscode-editor-font-family), monospace',
+                        fontSize: '0.8em',
+                        color: 'var(--vscode-descriptionForeground)'
+                    }}>
+                        Provenance Hash: {receipt.intent_hash}
+                    </div>
+                )}
             </div>
         </div>
     );

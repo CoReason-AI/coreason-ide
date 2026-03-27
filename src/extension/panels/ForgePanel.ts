@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { WebviewMessage } from '../../shared/types';
+import { executeSandbox } from '../network/edgeClient';
 
 export class ForgePanel {
     public static currentPanel: ForgePanel | undefined;
@@ -43,6 +44,9 @@ export class ForgePanel {
                 this.panel.webview.postMessage({ type: 'SET_ROUTE', payload: 'FORGE' });
             } else if (message.type === 'CRYSTALLIZE_TEST') {
                 await this.crystallizeTest(message.payload);
+            } else if (message.type === 'EXECUTE_CAPABILITY') {
+                const receipt = await executeSandbox(message.payload.toolName, message.payload.intent);
+                this.panel.webview.postMessage({ type: 'CAPABILITY_EXECUTED', payload: receipt });
             }
         }, null, this.disposables);
     }

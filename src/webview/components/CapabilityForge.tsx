@@ -12,6 +12,7 @@ export const CapabilityForge = () => {
     const [activeTab, setActiveTab] = useState<'output' | 'stdout' | 'physics'>('output');
     const [isLoading, setIsLoading] = useState(false);
     const [isAgentDriving, setIsAgentDriving] = useState(false);
+    const [currentWorkflowId, setCurrentWorkflowId] = useState<string>('');
 
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
@@ -20,6 +21,9 @@ export const CapabilityForge = () => {
                 setIsAgentDriving(message.payload);
             } else if (message && message.type === 'AGENT_SUSPENDED') {
                 setIsAgentDriving(message.payload.isAgentDriving);
+                if (message.payload.workflowId) {
+                    setCurrentWorkflowId(message.payload.workflowId);
+                }
                 if (message.payload.isAgentDriving) {
                     if (message.payload.latentState) {
                         setLatentState(JSON.stringify(message.payload.latentState, null, 2));
@@ -95,6 +99,15 @@ export const CapabilityForge = () => {
                 output: typeof receipt.output === 'string' ? receipt.output : JSON.stringify(receipt.output)
             }
         });
+    };
+
+    const handleOracleOverride = () => {
+        vscodeApi.postMessage({
+            type: 'OVERRIDE_AGENT_INTENT',
+            payload: { workflowId: currentWorkflowId, correctedIntent: intentJson }
+        });
+        // Autonomic Release: Instantly unlock the UI
+        setIsAgentDriving(false);
     };
 
     return (
@@ -174,7 +187,7 @@ export const CapabilityForge = () => {
 
                 {isAgentDriving ? (
                     <button
-                        onClick={() => setIsAgentDriving(false)}
+                        onClick={handleOracleOverride}
                         style={{
                             padding: '10px',
                             background: 'var(--vscode-errorForeground)',

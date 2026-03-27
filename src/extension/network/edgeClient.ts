@@ -53,3 +53,31 @@ export async function executeSandbox(toolName: string, intent: any): Promise<San
         };
     }
 }
+
+export async function resumeOracleWorkflow(workflowId: string, correctedIntent: string): Promise<boolean> {
+    try {
+        const payload = {
+            corrected_intent: JSON.parse(correctedIntent)
+        };
+
+        const response = await fetch(`http://localhost:8000/api/v1/oracle/resume/${workflowId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        return true;
+    } catch (error: any) {
+        if (!outputChannel) {
+            outputChannel = vscode.window.createOutputChannel('CoReason');
+        }
+        outputChannel.appendLine(`[Error] Failed to resume oracle workflow ${workflowId} on Epistemic Edge: ${error}`);
+        return false;
+    }
+}

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { WebviewMessage } from '../../shared/types';
-import { executeSandbox } from '../network/edgeClient';
+import { executeSandbox, resumeOracleWorkflow } from '../network/edgeClient';
 
 export class ForgePanel {
     public static currentPanel: ForgePanel | undefined;
@@ -47,6 +47,13 @@ export class ForgePanel {
             } else if (message.type === 'EXECUTE_CAPABILITY') {
                 const receipt = await executeSandbox(message.payload.toolName, message.payload.intent);
                 this.panel.webview.postMessage({ type: 'CAPABILITY_EXECUTED', payload: receipt });
+            } else if (message.type === 'OVERRIDE_AGENT_INTENT') {
+                const success = await resumeOracleWorkflow(message.payload.workflowId, message.payload.correctedIntent);
+                if (success) {
+                    vscode.window.showInformationMessage('✨ Epistemic Injection successful. Swarm thread resumed.');
+                } else {
+                    vscode.window.showErrorMessage('Failed to inject Epistemic Correction.');
+                }
             }
         }, null, this.disposables);
     }

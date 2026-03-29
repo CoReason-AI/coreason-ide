@@ -7,6 +7,7 @@ export class ManifoldPanel {
     private readonly panel: vscode.WebviewPanel;
     private readonly extensionUri: vscode.Uri;
     private disposables: vscode.Disposable[] = [];
+    private currentUri: vscode.Uri | undefined;
 
     public static createOrShow(extensionUri: vscode.Uri) {
         const column = vscode.window.activeTextEditor
@@ -42,15 +43,20 @@ export class ManifoldPanel {
 
         this.panel.webview.onDidReceiveMessage(async (message) => {
             if (message.type === 'REQUEST_SYNTHESIS') {
-                const editor = vscode.window.activeTextEditor;
-                if (!editor) {
+                const currentUri = this.currentUri;
+                if (!currentUri) {
+                    return;
+                }
+                const doc = vscode.workspace.textDocuments.find(d => d.uri.toString() === currentUri.toString());
+                if (!doc) {
                     return;
                 }
 
                 try {
-                    const currentYamlText = editor.document.getText();
+                    const currentYamlText = doc.getText();
+                    const port = vscode.workspace.getConfiguration('coreason.telemetry').get<number>('meshPort') || 8000;
 
-                    const response = await fetch('http://localhost:8000/api/v1/predict/topology', {
+                    const response = await fetch(`http://localhost:${port}/api/v1/predict/topology`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'text/plain'
@@ -64,7 +70,7 @@ export class ManifoldPanel {
 
                     const newYamlText = await response.text();
 
-                    const document = await vscode.workspace.openTextDocument(this.currentUri);
+                    const document = await vscode.workspace.openTextDocument(currentUri);
                     const text = document.getText();
 
                     if (text !== newYamlText) {

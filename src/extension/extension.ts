@@ -56,11 +56,15 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(oracleDisposable);
 
     telemetryClient.on('agent_suspended', (workflowId, latentState, intent) => {
-        if (OraclePanel.currentPanel) {
-            OraclePanel.currentPanel.triggerOracleLock(workflowId, latentState, intent);
+        const panel = OraclePanel.currentPanel;
+        if (panel) {
+            panel.triggerOracleLock(workflowId, latentState, intent);
         } else {
             OraclePanel.createOrShow(context.extensionUri, workflowId);
-            OraclePanel.currentPanel?.triggerOracleLock(workflowId, latentState, intent);
+            const newPanel = OraclePanel.currentPanel;
+            if (newPanel) {
+                newPanel.triggerOracleLock(workflowId, latentState, intent);
+            }
         }
     });
     telemetryClient.connect();

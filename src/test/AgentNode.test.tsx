@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { ReactFlowProvider } from '@xyflow/react';
 import { AgentNode, AgentNodeData } from '../webview/components/AgentNode';
 import React from 'react';
 
@@ -11,7 +12,11 @@ describe('AgentNode', () => {
             tokens: 'Thinking...',
         };
 
-        render(<AgentNode data={mockData} />);
+        render(
+            <ReactFlowProvider>
+                <AgentNode data={mockData} />
+            </ReactFlowProvider>
+        );
 
         expect(screen.getByText('ResearchAgent')).toBeInTheDocument();
         expect(screen.queryByText('Thinking...')).toBeNull();
@@ -24,7 +29,11 @@ describe('AgentNode', () => {
             tokens: 'Thinking...',
         };
 
-        render(<AgentNode data={mockData} />);
+        render(
+            <ReactFlowProvider>
+                <AgentNode data={mockData} />
+            </ReactFlowProvider>
+        );
 
         expect(screen.getByText('ResearchAgent2')).toBeInTheDocument();
         expect(screen.getByText('Thinking...')).toBeInTheDocument();

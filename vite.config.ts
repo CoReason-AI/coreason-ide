@@ -9,6 +9,7 @@ export default defineConfig({
       input: 'src/webview/index.tsx',
       output: {
         entryFileNames: 'webview.js',
+        assetFileNames: 'webview.[ext]',
       },
     },
     outDir: 'dist',

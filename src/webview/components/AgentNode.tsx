@@ -1,4 +1,5 @@
 import React from 'react';
+import { Handle, Position } from '@xyflow/react';
 
 export interface AgentNodeData {
     label: string;
@@ -12,11 +13,13 @@ export interface AgentNodeProps {
 
 export const AgentNode: React.FC<AgentNodeProps> = ({ data }) => {
     return (
-        <div className="agent-node">
-            <div className="agent-label">{data.label}</div>
+        <div style={{ background: '#252526', border: '1px solid #3c3c3c', borderRadius: '4px', padding: '10px', color: '#d4d4d4', minWidth: '150px', textAlign: 'center' }}>
+            <Handle type="target" position={Position.Top} />
+            <div style={{ fontSize: '12px', fontWeight: 'bold' }}>{data.label}</div>
             {data.status === 'running' && (
-                <div className="agent-tokens">{data.tokens}</div>
+                <div style={{ marginTop: '5px', fontSize: '10px', color: '#9cdcfe' }}>{data.tokens}</div>
             )}
+            <Handle type="source" position={Position.Bottom} />
         </div>
     );
 };

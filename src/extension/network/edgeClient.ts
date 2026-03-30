@@ -6,11 +6,35 @@ let outputChannel: vscode.OutputChannel | undefined;
 export async function fetchTopologySchema(): Promise<string | null> {
     const port = vscode.workspace.getConfiguration('coreason.telemetry').get('meshPort') || 8000;
     try {
-        const response = await fetch(`http://localhost:${port}/api/v1/schema/topology/swarm`);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        const [swarmRes, dagRes] = await Promise.all([
+            fetch(`http://localhost:${port}/api/v1/schema/topology/swarm`),
+            fetch(`http://localhost:${port}/api/v1/schema/topology/dag`)
+        ]);
+        
+        if (!swarmRes.ok || !dagRes.ok) {
+            throw new Error(`HTTP error! statuses: swarm=${swarmRes.status}, dag=${dagRes.status}`);
         }
-        return await response.text();
+        
+        const swarmSchema = await swarmRes.json();
+        const dagSchema = await dagRes.json();
+
+        // Merge $defs (or definitions) from both schemas into the root so $refs can resolve
+        const defs = {
+            ...(swarmSchema.$defs || {}),
+            ...(dagSchema.$defs || {})
+        };
+
+        const combined = {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "title": "CoReason Topology Manifest",
+            "$defs": defs,
+            "anyOf": [
+                { "$ref": swarmSchema.$ref },
+                { "$ref": dagSchema.$ref }
+            ]
+        };
+        
+        return JSON.stringify(combined);
     } catch (error) {
         // Create or reuse an output channel
         if (!outputChannel) {
@@ -25,11 +49,16 @@ export async function executeSandbox(toolName: string, intent: any): Promise<San
     const port = vscode.workspace.getConfiguration('coreason.telemetry').get('meshPort') || 8000;
     try {
         const payload = {
-            intent: intent.intent,
-            state: intent.state
+            jsonrpc: "2.0",
+            method: "mcp.ui.emit_intent",
+            params: {
+                intent: intent.intent,
+                state: intent.state
+            },
+            id: `forge-${Date.now()}`
         };
 
-        const response = await fetch(`http://localhost:${port}/api/v1/sandbox/execute`, {
+        const response = await fetch(`http://localhost:${port}/api/v1/sandbox/execute?tool_name=${encodeURIComponent(toolName)}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

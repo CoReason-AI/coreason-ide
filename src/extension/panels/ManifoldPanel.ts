@@ -10,12 +10,21 @@ export class ManifoldPanel {
     private currentUri: vscode.Uri | undefined;
 
     public static createOrShow(extensionUri: vscode.Uri) {
-        const column = vscode.window.activeTextEditor
-            ? vscode.window.activeTextEditor.viewColumn
-            : undefined;
+        const editor = vscode.window.activeTextEditor;
+        const column = editor ? editor.viewColumn : undefined;
+
+        let targetUri: vscode.Uri | undefined;
+        if (editor && (editor.document.languageId === 'yaml' || editor.document.languageId === 'json' || editor.document.fileName.endsWith('.coreason.yaml') || editor.document.fileName.endsWith('.coreason.json'))) {
+            targetUri = editor.document.uri;
+        }
 
         if (ManifoldPanel.currentPanel) {
             ManifoldPanel.currentPanel.panel.reveal(column);
+            if (targetUri) {
+                ManifoldPanel.currentPanel.currentUri = targetUri;
+                const doc = vscode.workspace.textDocuments.find(d => d.uri.toString() === targetUri?.toString());
+                if (doc) ManifoldPanel.currentPanel.updateCanvas(doc);
+            }
             return;
         }
 
@@ -30,20 +39,16 @@ export class ManifoldPanel {
             }
         );
 
-        ManifoldPanel.currentPanel = new ManifoldPanel(panel, extensionUri);
+        ManifoldPanel.currentPanel = new ManifoldPanel(panel, extensionUri, targetUri);
     }
 
-    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
+    private constructor(panel: vscode.WebviewPanel, extensionUri: vscode.Uri, initialUri?: vscode.Uri) {
         this.panel = panel;
         this.extensionUri = extensionUri;
-
-        const editor = vscode.window.activeTextEditor;
-        if (editor && (editor.document.languageId === 'yaml' || editor.document.fileName.endsWith('.coreason.yaml'))) {
-            this.currentUri = editor.document.uri;
-        }
+        this.currentUri = initialUri;
 
         vscode.window.onDidChangeActiveTextEditor(e => {
-            if (e && (e.document.languageId === 'yaml' || e.document.fileName.endsWith('.coreason.yaml'))) {
+            if (e && (e.document.languageId === 'yaml' || e.document.languageId === 'json' || e.document.fileName.endsWith('.coreason.yaml') || e.document.fileName.endsWith('.coreason.json'))) {
                 this.currentUri = e.document.uri;
             }
         }, null, this.disposables);
@@ -53,6 +58,38 @@ export class ManifoldPanel {
         this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
 
         this.panel.webview.onDidReceiveMessage(async (message) => {
+            if (message.type === 'READY') {
+                if (this.currentUri) {
+                    const doc = vscode.workspace.textDocuments.find(d => d.uri.toString() === this.currentUri?.toString());
+                    if (doc) {
+                        this.updateCanvas(doc);
+                    } else {
+                        vscode.workspace.openTextDocument(this.currentUri).then(openedDoc => {
+                            this.updateCanvas(openedDoc);
+                        });
+                    }
+                }
+                return;
+            }
+
+            if (message.type === 'WRITE_DOCUMENT') {
+                if (this.currentUri) {
+                    const edit = new vscode.WorkspaceEdit();
+                    const doc = vscode.workspace.textDocuments.find(d => d.uri.toString() === this.currentUri?.toString());
+                    if (doc) {
+                        const fullRange = new vscode.Range(
+                            doc.positionAt(0),
+                            doc.positionAt(doc.getText().length)
+                        );
+                        edit.replace(this.currentUri, fullRange, message.payload);
+                        vscode.workspace.applyEdit(edit).then(success => {
+                            if (!success) vscode.window.showErrorMessage('Failed to write topology changes back to file.');
+                        });
+                    }
+                }
+                return;
+            }
+
             if (message.type === 'REQUEST_SYNTHESIS') {
                 const currentUri = this.currentUri;
                 if (!currentUri) {
@@ -163,7 +200,9 @@ export class ManifoldPanel {
 
     public updateCanvas(document: vscode.TextDocument) {
         this.currentUri = document.uri;
-        const message: ExtensionMessage = { type: 'YAML_UPDATE', payload: document.getText() };
+        const text = document.getText();
+        vscode.window.showInformationMessage(`CoReason: Sending YAML_UPDATE payload to Canvas (length: ${text.length})`);
+        const message: ExtensionMessage = { type: 'YAML_UPDATE', payload: text };
         this.panel.webview.postMessage(message);
     }
 
@@ -176,6 +215,9 @@ export class ManifoldPanel {
         const scriptUri = webview.asWebviewUri(
             vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview.js')
         );
+        const styleUri = webview.asWebviewUri(
+            vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview.css')
+        );
         const nonce = Math.random().toString(36).substring(2, 15);
 
         return `<!DOCTYPE html>
@@ -183,8 +225,9 @@ export class ManifoldPanel {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' ${webview.cspSource};">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' ${webview.cspSource} blob:; worker-src blob:;">
     <title>CoReason TDA Canvas</title>
+    <link href="${styleUri}" rel="stylesheet" />
     <style>
         html, body {
             margin: 0;

@@ -75,7 +75,8 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.workspace.onDidChangeTextDocument((event) => {
             if (
                 event.document.languageId === 'yaml' ||
-                event.document.fileName.endsWith('.coreason.yaml')
+                event.document.fileName.endsWith('.coreason.yaml') ||
+                event.document.fileName.endsWith('.coreason.json')
             ) {
                 const uriString = event.document.uri.toString();
                 const timeout = debounceTimers.get(uriString);
@@ -98,7 +99,8 @@ export function activate(context: vscode.ExtensionContext) {
             if (
                 editor &&
                 (editor.document.languageId === 'yaml' ||
-                    editor.document.fileName.endsWith('.coreason.yaml'))
+                    editor.document.fileName.endsWith('.coreason.yaml') ||
+                    editor.document.fileName.endsWith('.coreason.json'))
             ) {
                 if (ManifoldPanel.currentPanel) {
                     ManifoldPanel.currentPanel.updateCanvas(editor.document);

@@ -37,7 +37,7 @@ export const CapabilityForge = () => {
                 setIsLoading(false);
             } else if (message && message.type === 'CAPABILITIES_FETCHED') {
                 const data = message.payload;
-                const caps = Array.isArray(data) ? data.map((c: any) => c.name || c) : [];
+                const caps = Array.isArray(data) ? data.map((c: any) => c.name || c) : (data.enum || []);
                 setCapabilities(caps);
                 if (caps.length > 0) {
                     setSelectedTool(caps[0]);

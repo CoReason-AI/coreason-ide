@@ -26,7 +26,9 @@ self.onmessage = async (event: MessageEvent) => {
 
         if (yamlData.edges && Array.isArray(yamlData.edges)) {
             yamlData.edges.forEach((edge: any, index: number) => {
-                if (edge.source && edge.target) {
+                if (Array.isArray(edge) && edge.length >= 2) {
+                    edges.push({ id: `e-${index}`, sources: [edge[0]], targets: [edge[1]] });
+                } else if (edge.source && edge.target) {
                     edges.push({
                         id: edge.id || `e-${index}`,
                         sources: [edge.source],

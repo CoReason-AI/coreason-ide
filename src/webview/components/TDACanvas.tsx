@@ -10,6 +10,7 @@ import { vscodeApi } from '../vscodeApi';
 
 export const TDACanvas = () => {
     const [rawDoc, setRawDoc] = useState<string>('');
+    const [userPrompt, setUserPrompt] = useState<string>('');
     const [nodes, setNodes] = useState<Node[]>([{
         id: 'debug-init',
         position: { x: 50, y: 50 },
@@ -86,21 +87,37 @@ export const TDACanvas = () => {
                 colorMode="dark"
             >
                 <Panel position="top-right">
-                    <button
-                        onClick={() => vscodeApi.postMessage({ type: 'REQUEST_SYNTHESIS' })}
-                        style={{
-                            background: 'var(--vscode-button-background)',
-                            color: 'var(--vscode-button-foreground)',
-                            border: 'none',
-                            padding: '8px 12px',
-                            cursor: 'pointer',
-                            fontWeight: 'bold',
-                            borderRadius: '2px',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-                        }}
-                    >
-                        ✨ Synthesize Next Agent
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                        <input 
+                            type="text" 
+                            placeholder="Prompt: Build a scraping swarm..." 
+                            value={userPrompt}
+                            onChange={(e) => setUserPrompt(e.target.value)}
+                            style={{
+                                padding: '6px',
+                                borderRadius: '2px',
+                                border: '1px solid var(--vscode-input-border)',
+                                background: 'var(--vscode-input-background)',
+                                color: 'var(--vscode-input-foreground)',
+                                width: '250px'
+                            }}
+                        />
+                        <button
+                            onClick={() => vscodeApi.postMessage({ type: 'REQUEST_SYNTHESIS', payload: { user_prompt: userPrompt } })}
+                            style={{
+                                background: 'var(--vscode-button-background)',
+                                color: 'var(--vscode-button-foreground)',
+                                border: 'none',
+                                padding: '8px 12px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold',
+                                borderRadius: '2px',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            }}
+                        >
+                            ✨ Synthesize Next Agent
+                        </button>
+                    </div>
                 </Panel>
                 <Panel position="top-left">
                     <button

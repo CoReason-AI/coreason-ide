@@ -101,20 +101,28 @@ export class ManifoldPanel {
                 }
 
                 try {
+                    vscode.window.showInformationMessage('CoReason: Igniting DeepInfra Inference Engine...');
+                    
                     const currentYamlText = doc.getText();
                     const port = vscode.workspace.getConfiguration('coreason.telemetry').get('meshPort') || 8000;
+                    const userPrompt = message.payload?.user_prompt || "";
 
                     const response = await fetch(`http://localhost:${port}/api/v1/predict/topology`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'text/plain'
+                            'Content-Type': 'application/json'
                         },
-                        body: currentYamlText
+                        body: JSON.stringify({
+                            topology: currentYamlText,
+                            user_prompt: userPrompt
+                        })
                     });
 
                     if (!response.ok) {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
+                    
+                    vscode.window.showInformationMessage('CoReason: Synthesis Successful! Morphing document topology...');
 
                     const newYamlText = await response.text();
 

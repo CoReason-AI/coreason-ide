@@ -58,60 +58,113 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(oracleDisposable);
 
     const newSwarmDisposable = vscode.commands.registerCommand('coreason.newSwarm', async () => {
-        let agentTemplate: any = {
-            type: "agent",
-            description: "This is a placeholder agent. Describe what it should do here."
-        };
+        const topologyOptions = [
+            'swarm', 'dag', 'council', 'evaluator-optimizer',
+            'digital-twin', 'evolutionary', 'capability-forge',
+            'consensus-federation', 'smpc'
+        ];
+        
+        const selectedTopology = await vscode.window.showQuickPick(topologyOptions, {
+            placeHolder: 'Select the topology type for your new manifest',
+            title: 'CoReason Scaffolding'
+        });
 
+        if (!selectedTopology) {
+            return;
+        }
+
+        let boilerplateObj: any = {};
+        
         try {
+            // Fetch live Pydantic JSON Schema from your backend endpoint
             const schemaStr = await fetchTopologySchema();
             if (schemaStr) {
                 const schema = JSON.parse(schemaStr);
-                const agentProfileProps = schema?.$defs?.AgentNodeProfile?.properties;
-                if (agentProfileProps) {
-                    const dynamicTemplate: any = {};
-                    for (const [k, v] of Object.entries<any>(agentProfileProps)) {
-                        if (v.default !== undefined) {
-                            dynamicTemplate[k] = v.default;
-                        } else if (v.type === 'string') {
-                            dynamicTemplate[k] = "";
-                            if (k === 'description') dynamicTemplate[k] = "This is a placeholder agent. Describe what it should do here.";
-                            if (k === 'type') dynamicTemplate[k] = "agent";
-                        } else if (v.type === 'array') {
-                            dynamicTemplate[k] = [];
-                        } else if (v.type === 'object') {
-                            dynamicTemplate[k] = {};
-                        } else if (v.type === 'number' || v.type === 'integer') {
-                            dynamicTemplate[k] = 0;
-                        } else if (v.type === 'boolean') {
-                            dynamicTemplate[k] = false;
-                        } else {
-                            dynamicTemplate[k] = null;
+                const definitions = schema.$defs || {};
+
+                // 1. Recursive Schema Builder
+                const buildFromSchema = (schemaNode: any): any => {
+                    // Resolve Pydantic Definitions
+                    if (schemaNode.$ref) {
+                        const refName = schemaNode.$ref.split('/').pop();
+                        if (refName && definitions[refName]) {
+                            return buildFromSchema(definitions[refName]);
                         }
                     }
-                    agentTemplate = dynamicTemplate;
-                }
-            }
-        } catch (e) {
-            console.warn("Failed to dynamically generate schema template, falling back to static boilerplate:", e);
-        }
+                    if (schemaNode.anyOf) {
+                        // Pick the primary non-null valid schema route
+                        const validOption = schemaNode.anyOf.find((n: any) => n.type !== 'null');
+                        return validOption ? buildFromSchema(validOption) : null;
+                    }
 
-        const boilerplateObj = {
-            manifest_version: "1.0.0",
-            tenant_id: "default-tenant",
-            session_id: "local-dev-session-001",
-            genesis_provenance: {
-                extracted_by: "did:coreason:local-dev-user",
-                source_event_id: "dev-001"
-            },
-            topology: {
-                type: "swarm",
-                nodes: {
-                    "did:coreason:draft-agent": agentTemplate
-                },
-                edges: []
+                    // Enforce Defaults
+                    if (schemaNode.default !== undefined) {
+                        return schemaNode.default;
+                    }
+                    
+                    // Route by Primitives
+                    if (schemaNode.type === 'string') return "";
+                    if (schemaNode.type === 'integer' || schemaNode.type === 'number') return 0;
+                    if (schemaNode.type === 'boolean') return false;
+                    
+                    // Build Arrays (Like `edges`)
+                    if (schemaNode.type === 'array') return [];
+                    
+                    // Recursively build nested Objects
+                    if (schemaNode.type === 'object' || schemaNode.properties) {
+                        const obj: Record<string, any> = {};
+                        if (schemaNode.properties) {
+                            for (const [key, value] of Object.entries<any>(schemaNode.properties)) {
+                                obj[key] = buildFromSchema(value);
+                            }
+                        }
+                        return obj;
+                    }
+                    return null;
+                };
+
+                // 2. Generate the full baseline envelope
+                boilerplateObj = buildFromSchema(schema);
+
+                // 3. Map selected string to actual Pydantic schema class block
+                const topologyTypeMap: Record<string, string> = {
+                    'swarm': 'SwarmTopologyManifest',
+                    'dag': 'DAGTopologyManifest',
+                    'council': 'CouncilTopologyManifest',
+                    'evaluator-optimizer': 'EvaluatorOptimizerTopologyManifest',
+                    'digital-twin': 'DigitalTwinTopologyManifest',
+                    'evolutionary': 'EvolutionaryTopologyManifest',
+                    'capability-forge': 'CapabilityForgeTopologyManifest',
+                    'consensus-federation': 'ConsensusFederationTopologyManifest',
+                    'smpc': 'SMPCTopologyManifest'
+                };
+                
+                const defName = topologyTypeMap[selectedTopology];
+                
+                // 4. Overwrite abstract baseline topology with specific targeted topology object
+                if (defName && definitions[defName]) {
+                    boilerplateObj.topology = buildFromSchema(definitions[defName]);
+                    boilerplateObj.topology.type = selectedTopology;
+
+                    // Automatically generate placeholder nodes
+                    if (boilerplateObj.topology.nodes) {
+                        boilerplateObj.topology.nodes["did:coreason:draft-agent"] = definitions['AgentNodeProfile'] ? buildFromSchema(definitions['AgentNodeProfile']) : {};
+                    }
+                }
+                
+                // Cosmetic cleanup to look like standard boilerplate template
+                if (boilerplateObj.genesis_provenance) {
+                    boilerplateObj.genesis_provenance.extracted_by = "did:coreason:local-dev-user";
+                    boilerplateObj.genesis_provenance.source_event_id = "dev-001";
+                }
+                
+            } else {
+                throw new Error("Empty schema returned");
             }
-        };
+        } catch (e: any) {
+            vscode.window.showErrorMessage("Failed to dynamically generate schema template: " + e.message);
+            return;
+        }
 
         const boilerplate = JSON.stringify(boilerplateObj, null, 2);
         const document = await vscode.workspace.openTextDocument({ content: boilerplate, language: 'json' });

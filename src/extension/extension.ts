@@ -115,6 +115,7 @@ export function activate(context: vscode.ExtensionContext) {
                         const obj: Record<string, any> = {};
                         if (schemaNode.properties) {
                             for (const [key, value] of Object.entries<any>(schemaNode.properties)) {
+                                if (key === 'target_epistemic_deficit') continue;
                                 obj[key] = buildFromSchema(value);
                             }
                         }

@@ -195,7 +195,18 @@ export function activate(context: vscode.ExtensionContext) {
             const data = await synthesizeAgent(prompt);
             
             if (data) {
-                vscode.window.showInformationMessage(`Compilation complete! Native Workflow [${data.workflow_id}] registered as ${data.manifest_type}.`);
+                vscode.window.showInformationMessage(`Compilation complete! Manifest JSON resolved.`);
+                
+                // Autonomically inject the synthesized payload directly into the active canvas JSON backing file
+                const editor = vscode.window.activeTextEditor;
+                if (editor) {
+                    await editor.edit(editBuilder => {
+                        editBuilder.replace(
+                            new vscode.Range(0, 0, editor.document.lineCount, 0),
+                            JSON.stringify(data, null, 4)
+                        );
+                    });
+                }
             } else {
                 vscode.window.showErrorMessage(`Synthesis failed. Please check the CoReason Engine backend logs.`);
             }

@@ -12,6 +12,7 @@ export const TDACanvas = () => {
     const [rawDoc, setRawDoc] = useState<string>('');
     const [userPrompt, setUserPrompt] = useState<string>('');
     const [isSynthesizing, setIsSynthesizing] = useState<boolean>(false);
+    const [toastMessage, setToastMessage] = useState<string | null>(null);
     const [nodes, setNodes] = useState<Node[]>([{
         id: 'debug-init',
         position: { x: 50, y: 50 },
@@ -73,21 +74,21 @@ export const TDACanvas = () => {
         setIsSynthesizing(true);
         vscodeApi.postMessage({ type: 'REQUEST_SYNTHESIS', payload: { user_prompt: userPrompt } });
     }, [userPrompt, isSynthesizing]);
-    
+
     const onConnect = useCallback((connection: Connection) => {
         setEdges((eds) => addEdge({ ...connection, id: `e-${Date.now()}` }, eds));
-        
+
         try {
             const yamlData = YAML.parse(rawDoc);
             // Support WorkflowManifest (edges under topology) and flat topology docs
             const topologyTarget = yamlData?.topology ?? yamlData;
             if (!topologyTarget.edges) topologyTarget.edges = [];
-            
+
             topologyTarget.edges.push([connection.source, connection.target]);
-            
+
             const isJson = rawDoc.trim().startsWith('{');
             const newDoc = isJson ? JSON.stringify(yamlData, null, 2) : YAML.stringify(yamlData);
-            
+
             setRawDoc(newDoc);
             pushToHistory(newDoc);
             vscodeApi.postMessage({ type: 'WRITE_DOCUMENT', payload: newDoc });
@@ -105,8 +106,16 @@ export const TDACanvas = () => {
                 pushToHistory(message.payload);
                 setIsSynthesizing(false);
                 worker.postMessage(message.payload);
+                setToastMessage(`YAML Updated (${message.payload.length} bytes)`);
+                setTimeout(() => setToastMessage(null), 3000);
             } else if (message.type === 'SYNTHESIS_ERROR' || message.type === 'SYNTHESIS_DONE') {
                 setIsSynthesizing(false);
+                if (message.payload) {
+                    setToastMessage(message.payload);
+                    setTimeout(() => setToastMessage(null), 3000);
+                }
+            } else if (message.type === 'SYNTHESIS_STATUS') {
+                setToastMessage(message.payload);
             }
         };
         window.addEventListener('message', handleMessage);
@@ -122,8 +131,8 @@ export const TDACanvas = () => {
                 console.error("ELK Layout Error:", event.data.message);
                 setNodes([{
                     id: 'error',
-                    position: {x: 50, y: 50},
-                    data: {label: `ELK Error: ${event.data.message}`},
+                    position: { x: 50, y: 50 },
+                    data: { label: `ELK Error: ${event.data.message}` },
                     type: 'agent'
                 }]);
             }
@@ -132,32 +141,32 @@ export const TDACanvas = () => {
 
     return (
         <div style={{ width: '100vw', height: '100vh' }}>
-            <ReactFlow 
-                nodes={nodes} 
-                edges={edges} 
-                nodeTypes={nodeTypes} 
+            <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                nodeTypes={nodeTypes}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
-                fitView 
+                fitView
                 colorMode="dark"
             >
                 <Panel position="bottom-center">
-                    <div style={{ 
-                        display: 'flex', 
-                        flexDirection: 'row', 
-                        gap: '8px', 
-                        alignItems: 'center', 
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'row',
+                        gap: '8px',
+                        alignItems: 'center',
                         background: 'var(--vscode-input-background)',
-                        padding: '8px 16px', 
-                        borderRadius: '24px', 
-                        border: '1px solid var(--vscode-widget-border, #444)', 
+                        padding: '8px 16px',
+                        borderRadius: '24px',
+                        border: '1px solid var(--vscode-widget-border, #444)',
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         width: '600px',
                         marginBottom: '24px'
                     }}>
-                        <textarea 
-                            placeholder="Prompt: Build a multi-agent scraping swarm..." 
+                        <textarea
+                            placeholder="Prompt: Build a multi-agent scraping swarm..."
                             value={userPrompt}
                             onChange={(e) => setUserPrompt(e.target.value)}
                             onKeyDown={(e) => {
@@ -174,9 +183,9 @@ export const TDACanvas = () => {
                                 background: 'transparent',
                                 color: 'var(--vscode-input-foreground)',
                                 minHeight: '24px',
-                                maxHeight: '100px',
+                                maxHeight: '350px',
                                 fontFamily: 'inherit',
-                                resize: 'none',
+                                resize: 'vertical',
                                 outline: 'none',
                                 overflowY: 'auto'
                             }}
@@ -248,6 +257,25 @@ export const TDACanvas = () => {
                             🔄 Refresh
                         </button>
                     </div>
+                </Panel>
+                <Panel position="top-right">
+                    {toastMessage && (
+                        <div style={{
+                            background: 'var(--vscode-button-background, #007acc)',
+                            color: 'var(--vscode-button-foreground, white)',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'opacity 0.3s ease-in-out'
+                        }}>
+                            <span>📌</span> {toastMessage}
+                        </div>
+                    )}
                 </Panel>
                 <Background />
                 <Controls />

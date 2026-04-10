@@ -103,7 +103,7 @@ export class ManifoldPanel {
                 }
 
                 try {
-                    vscode.window.showInformationMessage('CoReason: Igniting DeepInfra Inference Engine...');
+                    this.panel.webview.postMessage({ type: 'SYNTHESIS_STATUS', payload: '🚀 Igniting DeepInfra Inference Engine...' });
                     
                     const currentYamlText = doc.getText();
                     const port = vscode.workspace.getConfiguration('coreason.telemetry').get('meshPort') || 8000;
@@ -124,7 +124,7 @@ export class ManifoldPanel {
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
                     
-                    vscode.window.showInformationMessage('CoReason: Synthesis Successful! Morphing document topology...');
+                    this.panel.webview.postMessage({ type: 'SYNTHESIS_STATUS', payload: '✨ Synthesis Successful! Morphing document...' });
 
                     const newYamlText = await response.text();
 
@@ -177,7 +177,7 @@ export class ManifoldPanel {
                     }
 
                     if (hasConflict) {
-                        vscode.window.showWarningMessage('Synthesis aborted: Document was modified in the exact locations the LLM was targeting.');
+                        this.panel.webview.postMessage({ type: 'SYNTHESIS_ERROR', payload: '❌ Synthesis aborted: Document conflict.' });
                         return;
                     }
 
@@ -197,12 +197,12 @@ export class ManifoldPanel {
                             await vscode.workspace.applyEdit(edit);
                         } else if (patchedText === false) {
                             // If patch application failed, fallback to warning the user
-                            vscode.window.showWarningMessage('Synthesis aborted: Unable to cleanly merge changes into the modified document.');
+                            this.panel.webview.postMessage({ type: 'SYNTHESIS_ERROR', payload: '❌ Synthesis aborted: Clean merge failed.' });
                         }
                     }
                 } catch (error) {
                     console.error('Synthesis failed:', error);
-                    vscode.window.showErrorMessage('Synthesis Engine Offline');
+                    this.panel.webview.postMessage({ type: 'SYNTHESIS_ERROR', payload: '❌ Synthesis Engine Offline' });
                 }
             }
         }, null, this.disposables);
@@ -211,7 +211,6 @@ export class ManifoldPanel {
     public updateCanvas(document: vscode.TextDocument) {
         this.currentUri = document.uri;
         const text = document.getText();
-        vscode.window.showInformationMessage(`CoReason: Sending YAML_UPDATE payload to Canvas (length: ${text.length})`);
         const message: ExtensionMessage = { type: 'YAML_UPDATE', payload: text };
         this.panel.webview.postMessage(message);
     }

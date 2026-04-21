@@ -43,15 +43,10 @@ export const OracleResolver = () => {
                     setSchemaFields(intent.resolution_schema);
                     setYieldType(intent.intent_type || 'AdjudicationIntent');
                     // Pre-populate with default values from schema
-                    const defaults: Record<string, any> = {};
-                    for (const [key, spec] of Object.entries(intent.resolution_schema as Record<string, any>)) {
-                        Object.defineProperty(defaults, key, {
-                            value: spec?.default ?? '',
-                            enumerable: true,
-                            configurable: true,
-                            writable: true
-                        });
-                    }
+                    const defaultEntries = Object.entries(intent.resolution_schema as Record<string, any>)
+                        .filter(([key]) => key !== '__proto__' && key !== 'constructor' && key !== 'prototype')
+                        .map(([key, spec]) => [key, spec?.default ?? '']);
+                    const defaults = Object.fromEntries(defaultEntries);
                     setResolutionData(JSON.stringify(defaults, null, 2));
                     setStatus(`${intent.intent_type || 'Intent'} received — awaiting human resolution.`);
                 }
